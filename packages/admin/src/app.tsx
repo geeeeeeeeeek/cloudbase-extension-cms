@@ -7,27 +7,22 @@ import { codeMessage } from '@/constants'
 import { BasicLayoutProps, Settings as LayoutSettings, MenuDataItem } from '@ant-design/pro-layout'
 import { getCurrentUser } from './services/apis'
 import defaultSettings from '../config/defaultSettings'
-import { getAuthHeaderAsync, getCloudBaseApp, getHttpAccessPath, isDevEnv } from './utils'
+import { isDevEnv, getLoginState, getHttpAccessPath, getAuthHeaderAsync } from './utils'
 import * as models from './models'
+import { getSetting } from './services/global'
 
 run(models)
 
 export async function getInitialState(): Promise<{
-  currentUser?: Partial<API.CurrentUser>
+  currentUser?: Partial<CurrentUser>
   settings?: LayoutSettings
   menu?: any[]
 }> {
-  let app
   let loginState
 
   try {
-    app = await getCloudBaseApp()
     // 获取登录态
-    loginState = await app
-      .auth({
-        persistence: 'local',
-      })
-      .getLoginState()
+    loginState = await getLoginState()
   } catch (error) {
     console.log(error)
     message.error(`CloudBase JS SDK 初始化失败，${error?.message}`)
@@ -44,7 +39,7 @@ export async function getInitialState(): Promise<{
 
   let initialState: {
     menu?: MenuDataItem[]
-    currentUser?: Partial<API.CurrentUser>
+    currentUser?: Partial<CurrentUser>
     settings?: LayoutSettings
   } = {}
   let currentUser = {} as any
@@ -81,7 +76,7 @@ export async function getInitialState(): Promise<{
 export const layout = ({
   initialState = {},
 }: {
-  initialState: { menu?: MenuDataItem[]; settings?: LayoutSettings; currentUser?: API.CurrentUser }
+  initialState: { menu?: MenuDataItem[]; settings?: LayoutSettings; currentUser?: CurrentUser }
 }): BasicLayoutProps => {
   const { currentUser } = initialState
 
@@ -172,4 +167,45 @@ export const request: RequestConfig = {
     },
   },
   prefix: getHttpAccessPath(),
+}
+
+/**
+ * 注册微应用
+ */
+export const qiankun = async () => {
+  const isLogin = await getLoginState()
+
+  // 未登录时返回空配置
+  if (!isLogin) {
+    return {
+      apps: [],
+    }
+  }
+
+  // 加载应用信息
+  try {
+    const { data } = await getSetting()
+    const microApps = data.microApps || []
+
+    return {
+      // 注册子应用信息
+      apps: microApps.map((app) => ({
+        name: app.id,
+        entry: `https://${location.host}/cloudbase-cms/apps/${app.id}/index.html`,
+      })),
+      // 完整生命周期钩子请看 https://qiankun.umijs.org/zh/api/#registermicroapps-apps-lifecycles
+      lifeCycles: {
+        afterMount: (props: any) => {
+          console.log(props)
+        },
+      },
+      // 支持更多的其他配置，详细看这里 https://qiankun.umijs.org/zh/api/#start-opts
+    }
+  } catch (e) {
+    console.log(e)
+
+    return {
+      apps: [],
+    }
+  }
 }

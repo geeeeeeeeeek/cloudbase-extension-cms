@@ -114,7 +114,6 @@ CloudBase CMS 是云开发推出的，基于 Node.js 的 Headless 内容管理�
 
 | 功能                                             | 状态      | 发布版本 |
 | ------------------------------------------------ | --------- | -------- |
-| 支持创建微应用，嵌入自定义 Web 页面              | 🏹 设计中 |          |
 | 支持显示、检索 \_id 字段                         | 👷 进行中 |          |
 | 字段禁止编辑                                     | 👷 进行中 |          |
 | 图片、文件支持上传多个                           | 👷 进行中 |          |
@@ -124,6 +123,7 @@ CloudBase CMS 是云开发推出的，基于 Node.js 的 Headless 内容管理�
 | 地图组件                                         | ⏳ 规划中 |          |
 | 内容表字段索引支持                               | ⏳ 规划中 |          |
 | 定时任务 ⇒ 统计报表                              | ⏳ 规划中 |          |
+| 支持创建微应用，嵌入自定义 Web 页面              | 🚀 已完成 | V2.10    |
 | 支持保存检索字段                                 | 🚀 已完成 | V2.6     |
 | 富文本支持输入链接插入图片                       | 🚀 已完成 | V2.6     |
 | 新增多媒体类型，支持上传并播放视频、音乐         | 🚀 已完成 | V2.6     |
@@ -146,12 +146,14 @@ CloudBase CMS 是云开发推出的，基于 Node.js 的 Headless 内容管理�
 
 ## 在线交流
 
-如果在使用、安装过程中有任何问题，或者建议，欢迎加群讨论、反馈问题，或加云开发小助手微信： `Tcloudedu1`，发送 CMS 入群。
+如果在使用、安装过程中有任何问题，或者建议，欢迎加群讨论、反馈问题
 
 <div align="center">
-  <img src="https://main.qcloudimg.com/raw/c78005f04eb42e64e687cb690798af13.png" height="300px" />
-  <img src="https://main.qcloudimg.com/raw/b0e6c47ee41ef561cd02ec9e2af6c3b1.jpg" height="300px" alt=""/>
-  <img src="https://main.qcloudimg.com/raw/a07b103a276b42fa727102e66c54f787.jpg" height="300px" alt=""/>
+  <div>
+    扫描二维码，长按识别出现的二维码，即可加群
+  </div>
+  <img src="https://main.qcloudimg.com/raw/764d43c1b60b513dfe341576da1dffa8.jpg" height="300px" alt=""/>
+  <img src="https://main.qcloudimg.com/raw/602fe15e4b5b730f7510a75fc2e995c0.jpeg" height="300px" alt="" />
 </div>
 
 ## 🤝 贡献指南

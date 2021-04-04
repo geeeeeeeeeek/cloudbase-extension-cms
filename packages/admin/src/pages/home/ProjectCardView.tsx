@@ -1,8 +1,11 @@
 import React from 'react'
-import { history, useAccess } from 'umi'
+import { useAccess } from 'umi'
 import styled from 'styled-components'
 import { Card, Tooltip, Typography } from 'antd'
 import { PlusCircleTwoTone } from '@ant-design/icons'
+import { redirectTo } from '@/utils'
+import { useConcent } from 'concent'
+import { GlobalCtx } from 'typings/store'
 
 const { Title, Paragraph } = Typography
 
@@ -58,6 +61,7 @@ export default function ProjectListView({
   projects: Project[]
   onCreateProject: () => void
 }) {
+  const ctx = useConcent<{}, GlobalCtx>('global')
   const { isAdmin } = useAccess()
 
   return (
@@ -66,7 +70,12 @@ export default function ProjectListView({
         <ProjectItem
           key={index}
           onClick={() => {
-            history.push(`/${project._id}/home`)
+            ctx.setState({
+              currentProjectId: project._id,
+            })
+            redirectTo('home', {
+              projectId: project._id,
+            })
           }}
         >
           <Card bordered={false} style={cardStyle} bodyStyle={cardBodyStyle}>

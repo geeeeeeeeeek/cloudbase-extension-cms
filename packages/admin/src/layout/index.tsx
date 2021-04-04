@@ -1,5 +1,6 @@
+import { Spin } from 'antd'
 import React, { useEffect, useState } from 'react'
-import { history, Link, matchPath, useAccess } from 'umi'
+import { history, Link, useAccess } from 'umi'
 import HeaderTitle from '@/components/HeaderTitle'
 import RightContent from '@/components/RightContent'
 import ProLayout, { MenuDataItem, BasicLayoutProps } from '@ant-design/pro-layout'
@@ -11,46 +12,46 @@ import {
   RocketTwoTone,
   setTwoToneColor,
   ShoppingTwoTone,
+  AppstoreTwoTone,
 } from '@ant-design/icons'
 import { useConcent } from 'concent'
 import { ContentCtx, GlobalCtx } from 'typings/store'
-import { getCmsConfig } from '@/utils'
+import { getCmsConfig, getProjectId } from '@/utils'
 import defaultSettings from '../../config/defaultSettings'
-import { Spin } from 'antd'
 
 // 设置图标颜色
 setTwoToneColor('#0052d9')
 
-const customMenuData: MenuDataItem[] = [
+const systemMenuData: MenuDataItem[] = [
   {
     authority: 'isLogin',
-    path: '/:projectId/home',
+    path: '/project/home',
     name: '概览',
     icon: <EyeTwoTone />,
   },
   {
     authority: 'canSchema',
-    path: '/:projectId/schema',
+    path: '/project/schema',
     name: '内容模型',
     icon: <GoldTwoTone />,
   },
   {
     authority: 'canContent',
-    path: '/:projectId/content',
+    path: '/project/content',
     name: '内容集合',
     icon: <DatabaseTwoTone />,
     children: [],
   },
   {
     authority: 'canWebhook',
-    path: '/:projectId/webhook',
+    path: '/project/webhook',
     name: 'Webhook',
     icon: <RocketTwoTone />,
     children: [],
   },
   {
     authority: 'isAdmin',
-    path: '/:projectId/setting',
+    path: '/project/setting',
     name: '项目设置',
     icon: <SettingTwoTone />,
   },
@@ -58,9 +59,9 @@ const customMenuData: MenuDataItem[] = [
 
 // 微信侧才支持发送短信的功能
 if (WX_MP || window.TcbCmsConfig.isMpEnv) {
-  customMenuData.splice(3, 0, {
+  systemMenuData.splice(3, 0, {
     authority: 'canContent',
-    path: '/:projectId/operation',
+    path: '/project/operation',
     name: '营销工具',
     icon: <ShoppingTwoTone />,
     children: [],
@@ -91,16 +92,10 @@ const Layout: React.FC<any> = (props) => {
 
   // 加载 schema 集合
   useEffect(() => {
-    // 匹配 Path，获取 projectId
-    const match = matchPath<{ projectId?: string }>(history.location.pathname, {
-      path: '/:projectId/*',
-      exact: true,
-      strict: false,
-    })
-
     // projectId 无效时，重定向到首页
-    const { projectId = '' } = match?.params || {}
-    if (projectId === ':projectId' || !projectId) {
+    const projectId = getProjectId()
+
+    if (projectId === 'project' || !projectId) {
       history.push('/home')
       return
     }
@@ -111,7 +106,7 @@ const Layout: React.FC<any> = (props) => {
   // 内容集合菜单
   const contentChildMenus = schemas?.map((schema: Schema) => ({
     name: schema.displayName,
-    path: `/:projectId/content/${schema._id}`,
+    path: `/project/content/${schema._id}`,
   }))
 
   // HACK: 强制菜单重新渲染，修复菜单栏在获取数据后不自动渲染的问题
@@ -119,27 +114,27 @@ const Layout: React.FC<any> = (props) => {
     setRefresh({
       n: refresh.n + 1,
     })
-  }, [customMenuData, loading, schemas, setting])
+  }, [systemMenuData, loading, schemas, setting])
 
   // 添加菜单
   useEffect(() => {
     // 是否开启了营销工具
     if (window.TcbCmsConfig.isMpEnv && setting?.enableOperation) {
-      if (!customMenuData[3].children?.length) {
-        customMenuData[3].children = [
+      if (!systemMenuData[3].children?.length) {
+        systemMenuData[3].children = [
           {
             name: '营销活动',
-            path: '/:projectId/operation/activity',
+            path: '/project/operation/activity',
             component: './project/operation/Activity/index',
           },
           {
             name: '发送短信',
-            path: '/:projectId/operation/message',
+            path: '/project/operation/message',
             component: './project/operation/Message/index',
           },
           {
             name: '统计分析',
-            path: '/:projectId/operation/analytics',
+            path: '/project/operation/analytics',
             component: './project/operation/Analytics/index',
           },
         ]
@@ -155,27 +150,56 @@ const Layout: React.FC<any> = (props) => {
       location={location}
       menuContentRender={(_, dom) => contentLoading({ dom, loading })}
       menuDataRender={(menuData: MenuDataItem[]) => {
-        customMenuData[2].children = contentChildMenus
-        return customMenuData.filter((_) => access[_.authority as string])
+        systemMenuData[2].children = contentChildMenus
+
+        // 将自定义菜单添加到 Webhook 菜单前
+        const { customMenus } = setting
+        if (customMenus?.length) {
+          // 循环判断菜单是否存在，不存在则插入菜单
+          // 保持菜单的原有顺序插入
+          const baseInsertIndex = WX_MP || window.TcbCmsConfig.isMpEnv ? 6 : 5
+          customMenus.forEach((menu, index) => {
+            const isCustomMenusInsert = systemMenuData.find((_) => _?.key === menu.id)
+            if (!isCustomMenusInsert) {
+              const customMenuData = mapCustomMenuTree(menu)
+              systemMenuData.splice(baseInsertIndex + index, 0, customMenuData)
+            }
+          })
+        }
+
+        return systemMenuData.filter((_) => access[_.authority as string])
       }}
       menuItemRender={(menuItemProps, defaultDom) => {
-        const match = matchPath<{ projectId?: string }>(history.location.pathname, {
-          path: '/:projectId/*',
-          exact: true,
-          strict: false,
-        })
+        const projectId = getProjectId()
 
-        // 项目 Id
-        const { projectId = '' } = match?.params || {}
-
-        if (menuItemProps.isUrl || menuItemProps.children) {
+        if (menuItemProps.children) {
           return defaultDom
         }
 
-        if (menuItemProps.path) {
+        // 链接菜单，外跳
+        if (menuItemProps.isUrl) {
           return (
             <Link
-              to={menuItemProps.path.replace(':projectId', projectId)}
+              to={menuItemProps.itemPath}
+              target="_blank"
+              onClick={() => {
+                console.log('click')
+              }}
+            >
+              {defaultDom}
+            </Link>
+          )
+        }
+
+        // 跳转路径
+        if (menuItemProps.path) {
+          const menuPath = menuItemProps.path?.includes('?pid')
+            ? menuItemProps.path
+            : menuItemProps.path + `?pid=${projectId}`
+
+          return (
+            <Link
+              to={menuPath}
               onClick={() => {
                 // 清空搜索数据
                 ctx.setState({
@@ -196,6 +220,33 @@ const Layout: React.FC<any> = (props) => {
       {children}
     </ProLayout>
   )
+}
+
+/**
+ * 遍历菜单配置树，生成菜单树
+ */
+const mapCustomMenuTree = (node: CustomMenuItem): any => {
+  if (!node.children?.length) {
+    return {
+      key: node.id,
+      authority: 'isLogin',
+      name: node.title,
+      path: node.microAppID ? `/project/microapp/${node.microAppID}` : node.link,
+      component: './project/microapp/index',
+      children: [],
+      icon: <AppstoreTwoTone />,
+    }
+  } else {
+    return {
+      key: node.id,
+      authority: 'isLogin',
+      name: node.title,
+      path: node.microAppID ? `/project/microapp/${node.microAppID}` : node.link,
+      component: './project/microapp/index',
+      children: node.children.map((_) => mapCustomMenuTree(_)),
+      icon: <AppstoreTwoTone />,
+    }
+  }
 }
 
 const contentLoading = ({

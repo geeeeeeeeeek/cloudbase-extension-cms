@@ -7,12 +7,15 @@ import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import { Button, Modal, message, Space, Row, Col, Dropdown, Menu, Select } from 'antd'
 import { PlusOutlined, DeleteOutlined, FilterOutlined, ExportOutlined } from '@ant-design/icons'
 import { getContents, deleteContent, batchDeleteContent } from '@/services/content'
+import { getProjectId, getSchemaAllFields, redirectTo } from '@/utils'
 import { ContentCtx } from 'typings/store'
-import { getTableColumns } from './columns'
+import { DOC_ID_FIELD } from '@/common'
+import { SortOrder } from 'antd/lib/table/interface'
+import { exportData, formatFilter, formatSearchParams } from './tool'
 import ContentTableSearchForm from './SearchForm'
+import { getTableColumns } from './columns'
 import DataImport from './DataImport'
 import DataExport from './DataExport'
-import { exportData, formatSearchParams } from './tool'
 
 const { Option } = Select
 
@@ -25,9 +28,10 @@ const negativeTypes = ['File', 'Image']
 export const ContentTable: React.FC<{
   currentSchema: Schema
 }> = (props) => {
+  const projectId = getProjectId()
   const { currentSchema } = props
   const ctx = useConcent<{}, ContentCtx>('content')
-  const { projectId, schemaId = 'default' } = useParams<any>()
+  const { schemaId = 'default' } = useParams<UrlParams>()
 
   // 检索的字段
   const { searchFields, searchParams } = ctx.state
@@ -38,9 +42,9 @@ export const ContentTable: React.FC<{
   // 表格数据请求
   const tableRequest = useCallback(
     async (
-      params: { pageSize: number; current: number; [key: string]: any },
-      sort: any,
-      filter: any
+      params: { pageSize: number; current: number; keyword?: string },
+      sort: Record<string, SortOrder>,
+      filter: Record<string, React.ReactText[]>
     ) => {
       const { pageSize, current } = params
       const resource = currentSchema.collectionName
@@ -51,10 +55,10 @@ export const ContentTable: React.FC<{
       try {
         const { data = [], total } = await getContents(projectId, resource, {
           sort,
-          filter,
           pageSize,
           fuzzyFilter,
           page: current,
+          filter: formatFilter(filter, currentSchema),
         })
 
         return {
@@ -76,11 +80,15 @@ export const ContentTable: React.FC<{
   /**
    * 搜索字段下拉菜单
    */
+  const searchableFields = useMemo(
+    () => getSchemaAllFields(currentSchema)?.filter((filed) => !negativeTypes.includes(filed.type)),
+    [currentSchema]
+  )
   const searchFieldMenu = useMemo(
     () => (
       <Menu
         onClick={({ key }) => {
-          const field = currentSchema.fields.find((_) => _.name === key)
+          const field = searchableFields.find((_) => _.name === key)
           const fieldExist = searchFields?.find((_) => _.name === key)
           if (fieldExist) {
             message.error('字段已添加，请勿重复添加')
@@ -90,11 +98,9 @@ export const ContentTable: React.FC<{
           field && ctx.mr.addSearchField(field)
         }}
       >
-        {currentSchema?.fields
-          ?.filter((filed) => !negativeTypes.includes(filed.type))
-          .map((field) => (
-            <Menu.Item key={field.name}>{field.displayName}</Menu.Item>
-          ))}
+        {searchableFields.map((field) => (
+          <Menu.Item key={field.name}>{field.displayName}</Menu.Item>
+        ))}
       </Menu>
     ),
     [currentSchema, searchFields]
@@ -122,7 +128,7 @@ export const ContentTable: React.FC<{
                 contentAction: 'edit',
                 selectedContent: row,
               })
-              history.push(`/${projectId}/content/${schemaId}/edit`)
+              redirectTo(`content/${schemaId}/edit`)
             }}
           >
             编辑
@@ -185,8 +191,7 @@ export const ContentTable: React.FC<{
             contentAction: 'create',
             selectedContent: null,
           })
-
-          history.push(`/${projectId}/content/${schemaId}/edit`)
+          redirectTo(`content/${schemaId}/edit`)
         }}
       >
         新建

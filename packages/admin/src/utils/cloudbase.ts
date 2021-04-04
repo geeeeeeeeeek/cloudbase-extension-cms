@@ -6,8 +6,9 @@ import { uploadFilesToHosting } from '@/services/apis'
 import { codeMessage, RESOURCE_PREFIX } from '@/constants'
 import defaultSettings from '../../config/defaultSettings'
 import { isDevEnv, random } from './common'
-import { getFullDate } from './date'
+import { getDay, getFullDate, getMonth, getYear } from './date'
 import { downloadFileFromUrl } from './file'
+import { templateCompile } from './templateCompile'
 
 interface IntegrationRes {
   statusCode: number
@@ -66,7 +67,7 @@ export function getWxCloudApp() {
 }
 
 /**
- * 初始化云开发 app 实例
+ * 初始化云开发 app、auth 实例
  */
 function initCloudBaseApp() {
   if (!app) {
@@ -85,12 +86,27 @@ function initCloudBaseApp() {
   }
 }
 
-// 用户名密码登录
+/**
+ * 用户名密码登录
+ * @param username
+ * @param password
+ */
 export async function loginWithPassword(username: string, password: string) {
   // 登陆
   await auth.signInWithUsernameAndPassword(username, password)
 }
 
+/**
+ * 获取当前登录态信息
+ */
+export async function getLoginState() {
+  // 获取登录态
+  return auth.getLoginState()
+}
+
+/**
+ * 同步获取 x-cloudbase-credentials
+ */
 export function getAuthHeader() {
   return auth.getAuthHeader()
 }
@@ -98,7 +114,7 @@ export function getAuthHeader() {
 let gotAuthHeader = false
 let gotAuthTime = 0
 /**
- * 获取 x-cloudbase-credentials 请求 Header
+ * 异步获取 x-cloudbase-credentials 请求 Header
  */
 export async function getAuthHeaderAsync() {
   // 直接读取本地
@@ -229,21 +245,45 @@ function parseIntegrationRes(result: IntegrationRes) {
  * 上传文件到文件存储、静态托管
  */
 export async function uploadFile(options: {
+  /**
+   * 需要上传的文件
+   */
   file: File
-  filePath?: string
-  filenameLength?: number
-  onProgress?: (v: number) => void
-  uploadType?: 'hosting' | 'storage'
-}): Promise<string> {
-  const { file, onProgress, filePath, uploadType, filenameLength = 32 } = options
 
-  // 上传文件到静态托管
-  if (uploadType === 'hosting') {
-    // 返回 URL 信息数组
-    const ret = await uploadFilesToHosting(file)
-    onProgress?.(100)
-    return ret[0].url
-  }
+  /**
+   * 指定上传文件的路径
+   */
+  filePath?: string
+
+  /**
+   * 文件名随机的长度
+   */
+  filenameLength?: number
+
+  /**
+   * 进度事件
+   */
+  onProgress?: (v: number) => void
+  /**
+   * 文件上传存储类型，静态网站托管或云存储
+   * 默认为 storage
+   */
+  uploadType?: 'hosting' | 'storage'
+
+  /**
+   * 路径模版，根据模版规则做动态替换
+   * 以 cloudbase-cms 为基础路径
+   */
+  filePathTemplate?: string
+}): Promise<string> {
+  const {
+    file,
+    onProgress,
+    filePath,
+    uploadType = 'storage',
+    filenameLength = 32,
+    filePathTemplate,
+  } = options
 
   const app = await getCloudBaseApp()
   const day = getFullDate()
@@ -254,14 +294,51 @@ export async function uploadFile(options: {
     ext = file.name.split('.').pop()
     ext = `.${ext}`
   } else {
-    ext = file.name
+    ext = ''
   }
 
-  const uploadFilePath = filePath || `upload/${day}/${random(filenameLength)}_${ext}`
+  // 模版变量
+  const templateData: any = {
+    // 文件扩展
+    ext,
+    // 文件名
+    filename: file.name,
+    // 今日日期
+    date: day,
+    // 年份，如 2021
+    year: getYear(),
+    // 月份，如 03
+    month: getMonth(),
+    // 日，如 02
+    day: getDay(),
+  }
 
+  // 添加 random1 到 random64
+  for (let i = 1; i <= 64; i++) {
+    templateData[`random${i}`] = random(i)
+  }
+
+  let uploadFilePath: string
+
+  // 路径模版优先级最高
+  if (filePathTemplate) {
+    uploadFilePath = 'cloudbase-cms/' + templateCompile(filePathTemplate, templateData)
+  } else {
+    uploadFilePath = filePath || `cloudbase-cms/upload/${day}/${random(filenameLength)}_${ext}`
+  }
+
+  // 上传文件到静态托管
+  if (uploadType === 'hosting') {
+    // 返回 URL 信息数组
+    const ret = await uploadFilesToHosting(file, uploadFilePath)
+    onProgress?.(100)
+    return ret[0].url
+  }
+
+  // 上传文件到云存储
   const result = await app.uploadFile({
     filePath: file,
-    cloudPath: `cloudbase-cms/${uploadFilePath}`,
+    cloudPath: uploadFilePath,
     onUploadProgress: (progressEvent: ProgressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
       onProgress?.(percentCompleted)

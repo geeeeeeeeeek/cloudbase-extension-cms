@@ -1,6 +1,14 @@
+import React from 'react'
 import { ProColumns } from '@ant-design/pro-table'
 import { getFieldRender } from '@/components/Fields'
-import { calculateFieldWidth, getSchemaCustomFields, getSchemaSystemFields } from '@/utils'
+import {
+  calculateFieldWidth,
+  copyToClipboard,
+  getSchemaCustomFields,
+  getSchemaSystemFields,
+} from '@/utils'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { message, Popconfirm, Space } from 'antd'
 
 type DateTime = 'dateTime' | 'date' | 'textarea'
 
@@ -15,28 +23,15 @@ export const getTableColumns = (schema: Schema): ProColumns[] => {
     (field, i, arr) => field && arr.findIndex((_) => _.name === field.name) === i
   )
 
-  // 将系统字段放到表格的末尾列
-  const columns: ProColumns[] = customFields.map(fieldToColumn)
-  const systemFieldColumns = getSchemaSystemFields(schema).map(fieldToColumn)
-  columns.push(...systemFieldColumns)
+  const systemFields = getSchemaSystemFields(schema)
+  const idFiled = systemFields.splice(0, 1)[0]
 
-  // 插入序号列
-  // columns.unshift({
-  //   title: '序号',
-  //   width: 72,
-  //   align: 'center',
-  //   valueType: 'indexBorder',
-  //   render: (
-  //     text: React.ReactNode,
-  //     record: any,
-  //     index: number,
-  //     action: any
-  //   ): React.ReactNode | React.ReactNode[] => {
-  //     const { current, pageSize } = action
-  //     const serial = Number(pageSize) * (Number(current) - 1) + index + 1
-  //     return serial
-  //   },
-  // })
+  // 将 _id 字段放到表格首列
+  customFields.unshift(idFiled)
+  // 将时间字段放到表格的末尾列
+  customFields.push(...systemFields)
+
+  const columns: ProColumns[] = customFields.map(fieldToColumn)
 
   return columns
 }
@@ -50,7 +45,33 @@ const fieldToColumn = (field: SchemaField) => {
   const valueType: DateTime =
     type === 'DateTime' ? 'dateTime' : type === 'Date' ? 'date' : 'textarea'
 
-  const render = getFieldRender(field)
+  // 处理渲染错误
+  const render = (text: React.ReactNode, record: any, index: number, action: any) => {
+    const component = getFieldRender(field)(text, record, index, action)
+
+    return (
+      <ErrorBoundary
+        fallbackRender={({ error }) => (
+          <Popconfirm
+            title={
+              <div>
+                异常信息（点击确认复制异常信息）：
+                <p>{error?.message}</p>
+              </div>
+            }
+            onConfirm={() => {
+              copyToClipboard(error.message)
+              message.success('复制错误信息成功')
+            }}
+          >
+            <Space className="text-red-600 font-bold">❌ 数据异常</Space>
+          </Popconfirm>
+        )}
+      >
+        {component}
+      </ErrorBoundary>
+    )
+  }
 
   // 计算列宽度，略大于计算宽度
   const width = calculateFieldWidth(field) + 10
