@@ -6,6 +6,7 @@ import { useLocalStorageState } from '@umijs/hooks'
 import { setTwoToneColor, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { Modal, Form, Input, Space, Button, message, Tooltip, Typography, Empty } from 'antd'
 import { getProjects, createProject } from '@/services/project'
+import { getPageQuery } from '@/utils'
 import ProjectListView from './ProjectListView'
 import ProjectCardView from './ProjectCardView'
 import HomePageContainer from './HomePageContainer'
@@ -30,28 +31,60 @@ const ToggleIcon = styled.div`
 `
 
 export default (): React.ReactNode => {
+  // 项目分组
+  const { groups } = window.TcbCmsConfig
+  const { group } = getPageQuery()
   const { isAdmin } = useAccess()
   // 布局设置持久化到本地
   const [currentLayout, setLocalLayout] = useLocalStorageState('TCB_CMS_PROJECT_LAYOUT', 'card')
-  const [{ modalVisible, reload }, setState] = useSetState({
+  const [{ modalVisible, reload, currentGroup }, setState] = useSetState({
     reload: 0,
     modalVisible: false,
+    currentGroup: group || groups?.[0]?.key,
   })
 
   // 请求数据
-  const { data = [], loading } = useRequest(() => getProjects(), {
+  let { data = [], loading } = useRequest(() => getProjects(), {
     refreshDeps: [reload],
   })
 
+  // 展示创建项目的弹窗
   const showCreatingModal = () =>
     setState({
       modalVisible: true,
     })
 
+  // 过滤分组，group 默认为 default
+  data = groups?.length
+    ? data.filter((_) => (_.group ? _.group?.includes(currentGroup) : currentGroup === 'default'))
+    : data
+
   return (
     <HomePageContainer loading={loading}>
       <div className="flex items-center justify-between mb-10">
-        <Typography.Title level={3}>我的项目</Typography.Title>
+        <div className="flex flex-row items-center">
+          {groups?.length ? (
+            groups.map((group) => (
+              <Typography.Title
+                level={3}
+                key={group.key}
+                onClick={() =>
+                  setState({
+                    currentGroup: group.key,
+                  })
+                }
+                className="mr-5 my-0 cursor-pointer"
+                style={{
+                  color: currentGroup === group.key ? '#0052d9' : '#9CA3AF',
+                }}
+              >
+                {group.title}
+              </Typography.Title>
+            ))
+          ) : (
+            <Typography.Title level={3}>我的项目</Typography.Title>
+          )}
+        </div>
         <Tooltip title="切换布局">
           <ToggleIcon
             className="flex items-center justify-between cursor-pointer"
@@ -139,17 +172,17 @@ export const ProjectCreateModal: React.FC<{
         </Form.Item>
 
         <Form.Item
-          label="项目 Id"
+          label="项目 ID"
           name="customId"
           rules={[
-            { required: true, message: '请输入项目 Id！' },
+            { required: true, message: '请输入项目 ID！' },
             {
               pattern: /^[a-zA-Z0-9]{1,16}$/,
-              message: '项目 Id 仅支持字母与数字，不大于 16 个字符',
+              message: '项目 ID 仅支持字母与数字，不大于 16 个字符',
             },
           ]}
         >
-          <Input placeholder="项目 Id，如 website，仅支持字母与数字，不大于 16 个字符" />
+          <Input placeholder="项目 ID，如 website，仅支持字母与数字，不大于 16 个字符" />
         </Form.Item>
 
         <Form.Item label="项目介绍" name="description">

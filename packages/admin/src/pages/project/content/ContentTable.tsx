@@ -9,7 +9,6 @@ import { PlusOutlined, DeleteOutlined, FilterOutlined, ExportOutlined } from '@a
 import { getContents, deleteContent, batchDeleteContent } from '@/services/content'
 import { getProjectId, getSchemaAllFields, redirectTo } from '@/utils'
 import { ContentCtx } from 'typings/store'
-import { DOC_ID_FIELD } from '@/common'
 import { SortOrder } from 'antd/lib/table/interface'
 import { exportData, formatFilter, formatSearchParams } from './tool'
 import ContentTableSearchForm from './SearchForm'
@@ -66,7 +65,8 @@ export const ContentTable: React.FC<{
           total,
           success: true,
         }
-      } catch (error) {
+      } catch (e) {
+        console.log('查询数据异常', e)
         return {
           data: [],
           total: 0,
@@ -244,11 +244,12 @@ export const ContentTable: React.FC<{
         columns={memoTableColumns}
         toolBarRender={() => toolBarRender}
         tableAlertRender={tableAlerRender}
+        // 禁用树特性
+        childrenColumnName="__cms_children__"
         pagination={{
           ...pagination,
           // 翻页时，将分页数据保存在 URL 中
           onChange: (current = 1, pageSize = 10) => {
-            console.log(current, pageSize)
             setPageQuery(current, pageSize)
           },
         }}
