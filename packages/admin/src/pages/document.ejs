@@ -11,7 +11,7 @@
   <meta name="description" content="打造云端一体化数据运营平台" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-  <title>实验室资源管理平台</title>
+  <title>内容管理（CMS）</title>
   <link rel="icon"
     href="<%= context.config.publicPath + context.config.define.ICON_PATH%>"
     type="image/x-icon" />
@@ -189,6 +189,8 @@
         }
       }
     </style>
+    <img src="<%= context.config.publicPath + context.config.define.ICON_PATH%>"
+      alt="logo" width="196" />
     <div class="page-loading-warp">
       <div class="ant-spin ant-spin-lg ant-spin-spinning">
         <span class="ant-spin-dot ant-spin-dot-spin"><i
@@ -198,6 +200,9 @@
       </div>
     </div>
     <div style="display: flex; justify-content: center; align-items: center;">
+      <img
+        src="<%= context.config.publicPath + context.config.define.ICON_PATH%>"
+        width="32" style="margin-right: 8px;" />
       <h1 style="margin-bottom: 0;">
         <%= context.config.define.CMS_TITLE %>
       </h1>
