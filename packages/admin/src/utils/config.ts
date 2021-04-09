@@ -1,10 +1,10 @@
 const InnerDefaultValue: Partial<ITcbCmsConfing> = {
-  appName: 'CloudBase',
-  cmsTitle: 'CloudBase CMS',
-  cmsLogo: './icon.svg',
-  cmsDocLink: 'https://docs.cloudbase.net/cms/intro.html',
-  cmsHelpLink: 'https://support.qq.com/products/148793',
-  officialSiteLink: 'https://cloudbase.net',
+  appName: '海南大学信息与通信工程学院',
+  cmsTitle: '实验室资源管理系统',
+  cmsLogo: './logo.svg',
+  cmsDocLink: 'https://www.beibuwan.tech',
+  cmsHelpLink: 'https://www.beibuwan.tech',
+  officialSiteLink: 'https://www.beibuwan.tech',
 }
 
 /**
