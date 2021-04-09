@@ -6,7 +6,7 @@ WX_MP && console.log('微信构建')
 
 SERVER_MODE && console.log('容器服务模式构建')
 
-const name = WX_MP ? '内容管理（CMS）' : 'CloudBase CMS'
+const name = WX_MP ? '内容管理（CMS）' : '综合科技服务管理后台'
 
 const { REACT_APP_ENV } = process.env
 
