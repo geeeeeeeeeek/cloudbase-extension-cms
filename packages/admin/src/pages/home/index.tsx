@@ -82,7 +82,7 @@ export default (): React.ReactNode => {
               </Typography.Title>
             ))
           ) : (
-            <Typography.Title level={3}>我的项目</Typography.Title>
+            <Typography.Title level={3}>系统模块</Typography.Title>
           )}
         </div>
         <Tooltip title="切换布局">

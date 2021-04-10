@@ -110,7 +110,7 @@ const CreateProject: React.FC<{ onClick: () => void }> = ({ onClick }) => {
       </Card>
       <div className="ml-5 flex-1">
         <Typography.Title level={4} ellipsis={{ rows: 2, expandable: false }}>
-          创建新项目
+          创建新模块
         </Typography.Title>
       </div>
     </ProjectItem>
