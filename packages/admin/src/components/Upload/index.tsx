@@ -38,6 +38,9 @@ export interface IAppProps {
   onChange?: (uris: string[]) => void
 }
 
+/**
+ * 拖拽上传
+ */
 export function DraggerUpload({
   value,
   onChange,
@@ -46,7 +49,7 @@ export function DraggerUpload({
   filePathTemplate,
   resourceLinkType = 'fileId',
   ...uploadProps
-}: IAppProps & UploadProps) {
+}: IAppProps & Omit<UploadProps, keyof IAppProps>) {
   const [{ fileList }, setState] = useSetState<{
     fileList: any[]
   }>({
@@ -114,9 +117,9 @@ export function DraggerUpload({
             } as any)
           },
         })
-          .then((fileId: string) => {
+          .then(({ fileId, url }) => {
             // 返回值
-            const resourceLink = resourceLinkType === 'fileId' ? fileId : fileIdToUrl(fileId)
+            const resourceLink = resourceLinkType === 'fileId' ? fileId : url
             onSuccess?.(resourceLink, file as any)
           })
           .catch((e) => {
